@@ -7,7 +7,7 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/tasks')
+    fetch('http://localhost:5000!/tasks')
       .then(res => res.json())
       .then(data => {
         setTasks(data);
