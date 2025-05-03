@@ -6,8 +6,10 @@ function App() {
   const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(true);
 
+  const endpoint = 'https://dc-backend-black.vercel.app/api/tasks';
+
   useEffect(() => {
-    fetch('https://dc-backend-black.vercel.app/api/tasks')
+    fetch(endpoint)
       .then(res => res.json())
       .then(data => {
         setTasks(data);
@@ -18,7 +20,7 @@ function App() {
 
   const addTask = async () => {
     if (!title.trim()) return;
-    const res = await fetch('https://dc-backend-black.vercel.app/api/tasks', {
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title })
@@ -29,29 +31,25 @@ function App() {
   };
 
   const toggleTask = async (id) => {
-    const res = await fetch(`https://dc-backend-black.vercel.app/api/tasks/${id}`, {
+    const res = await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ action: 'toggle' })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, action: 'toggle' })
     });
     const updatedTask = await res.json();
     setTasks(tasks.map(task => task._id === id ? updatedTask : task));
   };
-  
+
   const deleteTask = async (id) => {
     if (!window.confirm("Are you sure you want to delete this task?")) return;
-    await fetch(`https://dc-backend-black.vercel.app/api/tasks/${id}`, {
+    await fetch(endpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ action: 'delete' })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, action: 'delete' })
     });
     setTasks(tasks.filter(task => task._id !== id));
   };
-  
+
   return (
     <div className="container">
       <header>
@@ -97,4 +95,3 @@ function App() {
 }
 
 export default App;
-
