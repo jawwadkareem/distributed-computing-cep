@@ -29,17 +29,29 @@ function App() {
   };
 
   const toggleTask = async (id) => {
-    const res = await fetch(`https://dc-backend-black.vercel.app/api/tasks/${id}`, { method: 'PUT' });
+    const res = await fetch(`https://dc-backend-black.vercel.app/api/tasks/${id}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ action: 'toggle' })
+    });
     const updatedTask = await res.json();
     setTasks(tasks.map(task => task._id === id ? updatedTask : task));
   };
-
+  
   const deleteTask = async (id) => {
     if (!window.confirm("Are you sure you want to delete this task?")) return;
-    await fetch(`https://dc-backend-black.vercel.app/api/tasks/${id}`, { method: 'DELETE' });
+    await fetch(`https://dc-backend-black.vercel.app/api/tasks/${id}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ action: 'delete' })
+    });
     setTasks(tasks.filter(task => task._id !== id));
   };
-
+  
   return (
     <div className="container">
       <header>
