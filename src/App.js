@@ -1,312 +1,303 @@
-// import React, { useState, useEffect } from 'react';
-// import './App.css';
+"use client"
 
-// function App() {
-//   const [tasks, setTasks] = useState([]);
-//   const [title, setTitle] = useState('');
-//   const [loading, setLoading] = useState(true);
-
-//   const endpoint = 'https://dc-backend-black.vercel.app/api/tasks';
-
-//   useEffect(() => {
-//     fetch(endpoint)
-//       .then(res => res.json())
-//       .then(data => {
-//         setTasks(data);
-//         setLoading(false);
-//       })
-//       .catch(err => console.error(err));
-//   }, []);
-
-//   const addTask = async () => {
-//     if (!title.trim()) return;
-//     const res = await fetch(endpoint, {
-//       method: 'POST',
-//       headers: { 'Content-Type': 'application/json' },
-//       body: JSON.stringify({ title })
-//     });
-//     const newTask = await res.json();
-//     setTasks([...tasks, newTask]);
-//     setTitle('');
-//   };
-
-//   const toggleTask = async (id) => {
-//     const res = await fetch(endpoint, {
-//       method: 'POST',
-//       headers: { 'Content-Type': 'application/json' },
-//       body: JSON.stringify({ id, action: 'toggle' })
-//     });
-//     const updatedTask = await res.json();
-//     setTasks(tasks.map(task => task._id === id ? updatedTask : task));
-//   };
-
-//   const deleteTask = async (id) => {
-//     if (!window.confirm("Are you sure you want to delete this task?")) return;
-//     await fetch(endpoint, {
-//       method: 'POST',
-//       headers: { 'Content-Type': 'application/json' },
-//       body: JSON.stringify({ id, action: 'delete' })
-//     });
-//     setTasks(tasks.filter(task => task._id !== id));
-//   };
-
-//   return (
-//     <div className="container">
-//       <header>
-//         <h1>📝 Task Manager</h1>
-//         <p>Organize your day effectively!</p>
-//       </header>
-
-//       <div className="task-form">
-//         <input
-//           type="text"
-//           placeholder="Enter your task..."
-//           value={title}
-//           onChange={(e) => setTitle(e.target.value)}
-//         />
-//         <button onClick={addTask}>+ Add Task</button>
-//       </div>
-
-//       <div className="task-section">
-//         {loading ? (
-//           <div className="loader"></div>
-//         ) : tasks.length === 0 ? (
-//           <p className="empty">No tasks yet. Start adding!</p>
-//         ) : (
-//           tasks.map(task => (
-//             <div key={task._id} className={`task-card ${task.completed ? 'completed' : ''}`}>
-//               <div className="task-title" onClick={() => toggleTask(task._id)}>
-//                 {task.title}
-//               </div>
-//               <div className="task-actions">
-//                 <button className="complete-btn" onClick={() => toggleTask(task._id)}>
-//                   {task.completed ? 'Undo' : 'Complete'}
-//                 </button>
-//                 <button className="delete-btn" onClick={() => deleteTask(task._id)}>
-//                   Delete
-//                 </button>
-//               </div>
-//             </div>
-//           ))
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
-
-// export default App;
-
-
-import React, { useState, useEffect } from 'react';
-import { ThemeProvider } from './components/ThemeProvider';
-import Sidebar from './components/Sidebar';
-import TaskDashboard from './components/TaskDashboard';
-import TaskList from './components/TaskList';
-import TaskForm from './components/TaskForm';
-import ModeToggle from './components/ModeToggle';
-import Toast from './components/Toast';
-import './App.css';
+import { useState, useEffect, useCallback, useMemo } from "react"
+import { ThemeProvider } from "./components/ThemeProvider"
+import Sidebar from "./components/Sidebar"
+import TaskDashboard from "./components/TaskDashboard"
+import TaskList from "./components/TaskList"
+import TaskForm from "./components/TaskForm"
+import ModeToggle from "./components/ModeToggle"
+import Toast from "./components/Toast"
+import "./App.css"
 
 function App() {
-  const [tasks, setTasks] = useState([]);
-  const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [activeView, setActiveView] = useState('all');
+  const [tasks, setTasks] = useState([])
+  const [stats, setStats] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [activeView, setActiveView] = useState("all")
   const [filters, setFilters] = useState({
-    category: '',
-    priority: '',
+    category: "",
+    priority: "",
     completed: undefined,
-    search: ''
-  });
-  const [toast, setToast] = useState({ visible: false, message: '', type: '' });
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  
-  const endpoint = 'https://dc-backend-black.vercel.app/api/tasks';
-  const statsEndpoint = 'https://dc-backend-black.vercel.app/api/stats';
+    search: "",
+  })
+  const [toast, setToast] = useState({ visible: false, message: "", type: "" })
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  const showToast = (message, type = 'success') => {
-    setToast({ visible: true, message, type });
+  // Use constants for endpoints to avoid recreating strings
+  const endpoint = useMemo(() => "https://dc-backend-black.vercel.app/api/tasks", [])
+  const statsEndpoint = useMemo(() => "https://dc-backend-black.vercel.app/api/stats", [])
+
+  const showToast = useCallback((message, type = "success") => {
+    setToast({ visible: true, message, type })
     setTimeout(() => {
-      setToast({ ...toast, visible: false });
-    }, 3000);
-  };
+      setToast((prevToast) => ({ ...prevToast, visible: false }))
+    }, 3000)
+  }, [])
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
-      let url = endpoint;
-      
+      let url = endpoint
+
       // Add query parameters for filtering
-      const queryParams = new URLSearchParams();
-      if (filters.category) queryParams.append('category', filters.category);
-      if (filters.priority) queryParams.append('priority', filters.priority);
-      if (filters.completed !== undefined) queryParams.append('completed', filters.completed.toString());
-      if (filters.search) queryParams.append('search', filters.search);
-      
-      if (queryParams.toString()) {
-        url += `?${queryParams.toString()}`;
-      }
-      
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Failed to fetch tasks');
-      
-      const data = await res.json();
-      setTasks(data);
-    } catch (error) {
-      console.error('Error fetching tasks:', error);
-      showToast('Failed to load tasks. Please try again.', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
+      const queryParams = new URLSearchParams()
+      if (filters.category) queryParams.append("category", filters.category)
+      if (filters.priority) queryParams.append("priority", filters.priority)
+      if (filters.completed !== undefined) queryParams.append("completed", filters.completed.toString())
+      if (filters.search) queryParams.append("search", filters.search)
 
-  const fetchStats = async () => {
-    try {
-      const res = await fetch(statsEndpoint);
-      if (!res.ok) throw new Error('Failed to fetch statistics');
-      
-      const data = await res.json();
-      setStats(data);
+      if (queryParams.toString()) {
+        url += `?${queryParams.toString()}`
+      }
+
+      // Removed custom headers that were causing CORS issues
+      const res = await fetch(url)
+
+      if (!res.ok) throw new Error("Failed to fetch tasks")
+
+      const data = await res.json()
+      setTasks(data)
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      console.error("Error fetching tasks:", error)
+      showToast("Failed to load tasks. Please try again.", "error")
+    } finally {
+      setLoading(false)
     }
-  };
+  }, [endpoint, filters, showToast])
+
+  const fetchStats = useCallback(async () => {
+    try {
+      // Removed custom headers that were causing CORS issues
+      const res = await fetch(statsEndpoint)
+
+      if (!res.ok) throw new Error("Failed to fetch statistics")
+
+      const data = await res.json()
+
+      // Ensure stats has all required properties
+      const safeData = {
+        total: data.total || 0,
+        completed: data.completed || 0,
+        pending: data.pending || 0,
+        priority: data.priority || { high: 0, medium: 0, low: 0 },
+        upcoming: data.upcoming || 0,
+        overdue: data.overdue || 0,
+        categories: data.categories || [],
+      }
+
+      setStats(safeData)
+    } catch (error) {
+      console.error("Error fetching stats:", error)
+      // Set default stats on error
+      setStats({
+        total: 0,
+        completed: 0,
+        pending: 0,
+        priority: { high: 0, medium: 0, low: 0 },
+        upcoming: 0,
+        overdue: 0,
+        categories: [],
+      })
+    }
+  }, [statsEndpoint])
 
   useEffect(() => {
-    fetchTasks();
-    fetchStats();
-  }, [filters]);
+    fetchTasks()
+    fetchStats()
+  }, [fetchTasks, fetchStats])
 
-  const addTask = async (taskData) => {
-    try {
-      setLoading(true);
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(taskData),
-      });
-      
-      if (!res.ok) throw new Error('Failed to add task');
-      
-      const newTask = await res.json();
-      setTasks([newTask, ...tasks]);
-      fetchStats();
-      
-      showToast('Task added successfully!');
-    } catch (error) {
-      console.error('Error adding task:', error);
-      showToast('Failed to add task. Please try again.', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const addTask = useCallback(
+    async (taskData) => {
+      try {
+        setLoading(true)
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(taskData),
+        })
 
-  const updateTask = async (id, taskData) => {
-    try {
-      setLoading(true);
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, action: 'update', ...taskData }),
-      });
-      
-      if (!res.ok) throw new Error('Failed to update task');
-      
-      const updatedTask = await res.json();
-      setTasks(tasks.map(task => task._id === id ? updatedTask : task));
-      fetchStats();
-      
-      showToast('Task updated successfully!');
-    } catch (error) {
-      console.error('Error updating task:', error);
-      showToast('Failed to update task. Please try again.', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
+        if (!res.ok) throw new Error("Failed to add task")
 
-  const toggleTask = async (id) => {
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, action: 'toggle' }),
-      });
-      
-      if (!res.ok) throw new Error('Failed to toggle task');
-      
-      const updatedTask = await res.json();
-      setTasks(tasks.map(task => task._id === id ? updatedTask : task));
-      fetchStats();
-    } catch (error) {
-      console.error('Error toggling task:', error);
-      showToast('Failed to update task status. Please try again.', 'error');
-    }
-  };
+        const newTask = await res.json()
+        setTasks((prevTasks) => [newTask, ...prevTasks])
+        fetchStats()
 
-  const deleteTask = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this task?")) return;
-    
-    try {
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, action: 'delete' }),
-      });
-      
-      if (!res.ok) throw new Error('Failed to delete task');
-      
-      setTasks(tasks.filter(task => task._id !== id));
-      fetchStats();
-      
-      showToast('Task deleted successfully!');
-    } catch (error) {
-      console.error('Error deleting task:', error);
-      showToast('Failed to delete task. Please try again.', 'error');
-    }
-  };
+        showToast("Task added successfully!")
+      } catch (error) {
+        console.error("Error adding task:", error)
+        showToast("Failed to add task. Please try again.", "error")
+      } finally {
+        setLoading(false)
+      }
+    },
+    [endpoint, fetchStats, showToast],
+  )
 
-  const handleFilterChange = (newFilters) => {
-    setFilters({ ...filters, ...newFilters });
-  };
+  const updateTask = useCallback(
+    async (id, taskData) => {
+      try {
+        setLoading(true)
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, action: "update", ...taskData }),
+        })
 
-  const handleViewChange = (view) => {
-    setActiveView(view);
-    
+        if (!res.ok) throw new Error("Failed to update task")
+
+        const updatedTask = await res.json()
+        setTasks((prevTasks) => prevTasks.map((task) => (task._id === id ? updatedTask : task)))
+        fetchStats()
+
+        showToast("Task updated successfully!")
+      } catch (error) {
+        console.error("Error updating task:", error)
+        showToast("Failed to update task. Please try again.", "error")
+      } finally {
+        setLoading(false)
+      }
+    },
+    [endpoint, fetchStats, showToast],
+  )
+
+  const toggleTask = useCallback(
+    async (id) => {
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, action: "toggle" }),
+        })
+
+        if (!res.ok) throw new Error("Failed to toggle task")
+
+        const updatedTask = await res.json()
+        setTasks((prevTasks) => prevTasks.map((task) => (task._id === id ? updatedTask : task)))
+        fetchStats()
+      } catch (error) {
+        console.error("Error toggling task:", error)
+        showToast("Failed to update task status. Please try again.", "error")
+      }
+    },
+    [endpoint, fetchStats, showToast],
+  )
+
+  const deleteTask = useCallback(
+    async (id) => {
+      if (!window.confirm("Are you sure you want to delete this task?")) return
+
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, action: "delete" }),
+        })
+
+        if (!res.ok) throw new Error("Failed to delete task")
+
+        setTasks((prevTasks) => prevTasks.filter((task) => task._id !== id))
+        fetchStats()
+
+        showToast("Task deleted successfully!")
+      } catch (error) {
+        console.error("Error deleting task:", error)
+        showToast("Failed to delete task. Please try again.", "error")
+      }
+    },
+    [endpoint, fetchStats, showToast],
+  )
+
+  const handleFilterChange = useCallback((newFilters) => {
+    setFilters((prevFilters) => ({ ...prevFilters, ...newFilters }))
+  }, [])
+
+  const handleViewChange = useCallback((view) => {
+    setActiveView(view)
+
     // Set appropriate filters based on view
-    if (view === 'all') {
-      setFilters({ ...filters, completed: undefined });
-    } else if (view === 'pending') {
-      setFilters({ ...filters, completed: false });
-    } else if (view === 'completed') {
-      setFilters({ ...filters, completed: true });
-    } else if (view === 'high-priority') {
-      setFilters({ ...filters, priority: 'high', completed: false });
-    }
-    
+    setFilters((prevFilters) => {
+      const newFilters = { ...prevFilters }
+
+      if (view === "all") {
+        newFilters.completed = undefined
+        newFilters.priority = ""
+      } else if (view === "pending") {
+        newFilters.completed = false
+        newFilters.priority = ""
+      } else if (view === "completed") {
+        newFilters.completed = true
+        newFilters.priority = ""
+      } else if (view === "high-priority") {
+        newFilters.priority = "high"
+        newFilters.completed = false
+      }
+
+      return newFilters
+    })
+
     // Close sidebar on mobile after selection
     if (window.innerWidth < 768) {
-      setSidebarOpen(false);
+      setSidebarOpen(false)
     }
-  };
+  }, [])
+
+  // Memoize the sidebar component to prevent unnecessary re-renders
+  const sidebarComponent = useMemo(
+    () => (
+      <Sidebar
+        activeView={activeView}
+        onViewChange={handleViewChange}
+        stats={stats}
+        isOpen={sidebarOpen}
+        toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+      />
+    ),
+    [activeView, handleViewChange, sidebarOpen, stats],
+  )
+
+  // Memoize the main content based on activeView
+  const mainContent = useMemo(() => {
+    if (activeView === "dashboard") {
+      return <TaskDashboard stats={stats} />
+    } else {
+      return (
+        <>
+          <TaskForm onAddTask={addTask} onFilterChange={handleFilterChange} filters={filters} />
+          {loading && tasks.length === 0 ? (
+            <div className="loader-container">
+              <div className="loader"></div>
+            </div>
+          ) : (
+            <TaskList tasks={tasks} onToggle={toggleTask} onDelete={deleteTask} onUpdate={updateTask} />
+          )}
+        </>
+      )
+    }
+  }, [activeView, stats, addTask, handleFilterChange, filters, loading, tasks, toggleTask, deleteTask, updateTask])
 
   return (
     <ThemeProvider>
       <div className="app-container">
-        <Sidebar 
-          activeView={activeView} 
-          onViewChange={handleViewChange}
-          stats={stats}
-          isOpen={sidebarOpen}
-          toggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-        />
-        
-        <main className="main-content">
+        {sidebarComponent}
+
+        {sidebarOpen && window.innerWidth < 768 && (
+          <div className="sidebar-overlay active" onClick={() => setSidebarOpen(false)}></div>
+        )}
+
+        <main className={`main-content ${sidebarOpen ? "sidebar-open" : ""}`}>
           <div className="header">
-            <button 
-              className="menu-button"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <button className="menu-button" onClick={() => setSidebarOpen(!sidebarOpen)}>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <line x1="3" y1="12" x2="21" y2="12"></line>
                 <line x1="3" y1="6" x2="21" y2="6"></line>
                 <line x1="3" y1="18" x2="21" y2="18"></line>
@@ -315,39 +306,14 @@ function App() {
             <h1>TaskFlow</h1>
             <ModeToggle />
           </div>
-          
-          {activeView === 'dashboard' ? (
-            <TaskDashboard stats={stats} />
-          ) : (
-            <>
-              <TaskForm 
-                onAddTask={addTask} 
-                onFilterChange={handleFilterChange}
-                filters={filters}
-              />
-              
-              {loading && tasks.length === 0 ? (
-                <div className="loader-container">
-                  <div className="loader"></div>
-                </div>
-              ) : (
-                <TaskList 
-                  tasks={tasks} 
-                  onToggle={toggleTask} 
-                  onDelete={deleteTask}
-                  onUpdate={updateTask}
-                />
-              )}
-            </>
-          )}
+
+          {mainContent}
         </main>
-        
-        {toast.visible && (
-          <Toast message={toast.message} type={toast.type} />
-        )}
+
+        {toast.visible && <Toast message={toast.message} type={toast.type} />}
       </div>
     </ThemeProvider>
-  );
+  )
 }
 
-export default App;
+export default App
